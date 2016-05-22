@@ -16,60 +16,66 @@ use DOMElement;
 class Converter
 {
     /**
-     * A representation of the HTML document we are building
+     * Converter configuration
      *
-     * @var \DomDocument
+     * @var array
      */
-    protected $dom;
+    protected $config;
 
     /**
      * An object representing the JSON to convert
      *
      * @var string
      */
-    protected $json;
+    // protected $json;
 
     /**
      * Array of default components and their configurations, representing Carbon components
      *
      * @var array
      */
-    protected $defaultComponents = [
-        'Section',
-        'Layout',
-        'Paragraph',
-        'Figure',
-    ];
+    // protected $defaultComponents = [
+    //     'Section',
+    //     'Layout',
+    //     'Paragraph',
+    //     'Figure',
+    // ];
 
     /**
      * Array of instantiated components
      *
      * @var array
      */
-    protected $components = [];
+    // protected $components = [];
 
     /**
      * Constructor
      *
+     * @param  array
      * @return string
      */
-    public function __construct()
+    public function __construct(array $config)
     {
-        $this->dom = new DOMDocument('1.0');
+        $defaults = array(
+            'suppress_errors' => true,  // Set to false to show warnings when loading malformed HTML
+            'remove_nodes'    => '',    // space-separated list of dom nodes that should be removed. example: 'meta style script'
+        );
 
-        // add default components
-        foreach ($this->defaultComponents as $componentName => $config) {
+        $this->config = array_merge($defaults, $config);
 
-            // do we have a config?
-            if (! is_array($config)) {
-                $componentName = $config;
-                $config = [];
-            }
+        // // add default components
+        // foreach ($this->defaultComponents as $componentName => $config) {
 
-            $component = '\\Candybanana\\CarbonJsonToHtml\\Components\\' . ucfirst($componentName);
+        //     // do we have a config?
+        //     if (! is_array($config)) {
+        //         $componentName = $config;
+        //         $config = [];
+        //     }
 
-            $this->addComponent($componentName, new $component($config));
-        }
+        //     $component = '\\Candybanana\\CarbonJsonToHtml\\Components\\' . ucfirst($componentName);
+
+        //     $this->addComponent($componentName, new $component($config));
+        // }
     }
 
     /**
@@ -103,6 +109,8 @@ class Converter
 
         $document = $this->createDOMDocument($html);
 
+        dd($document);
+
         // // Work on the entire DOM tree (including head and body)
         // if (!($root = $document->getElementsByTagName('html')->item(0))) {
         //     throw new \InvalidArgumentException('Invalid HTML was provided');
@@ -128,7 +136,7 @@ class Converter
     {
         $document = new \DOMDocument();
 
-        if ($this->getConfig()->getOption('suppress_errors')) {
+        if ($this->config['suppress_errors']) {
             // Suppress conversion errors (from http://bit.ly/pCCRSX)
             libxml_use_internal_errors(true);
         }
@@ -137,7 +145,7 @@ class Converter
         $document->loadHTML('<?xml encoding="UTF-8">' . $html);
         $document->encoding = 'UTF-8';
 
-        if ($this->getConfig()->getOption('suppress_errors')) {
+        if ($this->config['suppress_errors']) {
             libxml_clear_errors();
         }
 
