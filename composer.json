@@ -1,0 +1,20 @@
+{
+    "name": "candybanana/html-to-carbon-json",
+    "license": "MIT",
+    "description": "HTML to Carbon Editor JSON converter.",
+    "keywords": ["carbon", "json", "html", "converter"],
+    "require": {
+        "php": ">=5.4"
+    },
+    "authors": [
+        {
+            "name": "Adam McCann",
+            "email": "adam@mccann.io"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Candybanana\\HtmlToCarbonJson\\": "src"
+        }
+    }
+}
