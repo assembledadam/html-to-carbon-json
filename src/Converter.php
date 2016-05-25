@@ -41,9 +41,9 @@ class Converter
      * @var array
      */
     protected $defaultComponents = [
-        'Paragraph',
+        'ParagraphComponent',
+        'EmbeddedComponent',
         // 'Figure',
-        // 'EmbeddedComponent',
     ];
 
     /**
@@ -62,8 +62,7 @@ class Converter
     {
         $defaults = array(
             'suppress_errors'  => true,  // Set to false to show warnings when loading malformed HTML
-            'remove_nodes'     => '',    // space-separated list of dom nodes that should be removed. example: 'meta style script'
-            'layout_classname' => 'layout-single-column',
+            // 'remove_nodes'     => '',    // space-separated list of dom nodes that should be removed. example: 'meta style script'
         );
 
         $this->config = array_merge($defaults, $config);
@@ -84,7 +83,7 @@ class Converter
     }
 
     /**
-     * Adds a component parser
+     * Adds (or overrides) a component
      *
      * @param  string
      * @param  \Candybanana\HtmlToCarbonJson\Components\ComponentInterface
@@ -114,11 +113,6 @@ class Converter
         if (! ($root = $document->getElementsByTagName('body')->item(0))) {
             throw new \InvalidArgumentException('Invalid HTML was provided');
         }
-
-        // $temp = new \DOMDocument();
-        // $node = $temp->importNode($root, true);
-        // $temp->appendChild($node);
-        // dd($temp->saveHTML());
 
         $this->extractSections(new Element($root));
 
@@ -258,7 +252,7 @@ class Converter
     /**
      * Builds an object that will represent our JSON based on the sections we've extracted
      *
-     * @param  Element
+     * @param  \Candybanana\HtmlToCarbonJson\Element
      * @return string
      */
     protected function convertSection(Element $section)
@@ -269,6 +263,11 @@ class Converter
         foreach ($section->getChildren() as $sectionChild) {
 
             if (! ($component = $this->matchWithComponent($sectionChild))) {
+
+                // is there's a value in this element, throw error, otherwise ignore it
+                if (! $sectionChild->getValue()) {
+                    continue;
+                }
 
                 throw new Exceptions\InvalidStructureException(
                     "No component loaded to render '" . $sectionChild->getTagName() . "' tags."
@@ -321,27 +320,13 @@ class Converter
         // if (in_array($tag, $tags_to_remove)) {
         //     return false;
         // }
-
-        // foreach ($section->getChildren() as $sectionChild) {
-
-        //     // skip if empty
-        //     // @todo: figure out how we identify empty!
-
-        //     // @todo: put this into the component, so it can be controlled
-        //     $sections[] = [
-        //         'name'       => self::carbonId(),
-        //         'tagName'    => 'div',
-        //         'type'       => $this->config['section_classname'],
-        //         'component'  => 'Layout',
-        //         'components' => (string) new Components\Component($sectionChild),
-        //     ];
-        // }
     }
 
     /**
      * Match a component to the given element
      *
-     * @return [type] [description]
+     * @param  \Candybanana\HtmlToCarbonJson\Element
+     * @return \Candybanana\HtmlToCarbonJson\Components\ComponentInterface
      */
     protected function matchWithComponent(Element $element)
     {
@@ -357,57 +342,4 @@ class Converter
         // no component matches
         return null;
     }
-
-    /**
-     * Perform the conversion
-     *
-     * @return string
-     */
-    // public function convert($json)
-    // {
-    //     if (($this->json = json_decode($json)) === null) {
-
-    //         throw new Exception\NotTraversableException(
-    //             'The JSON provided is not valid'
-    //         );
-    //     }
-
-    //     // sections is *always* our first node
-    //     if (! isset($this->json->sections)) {
-
-    //         throw new Exception\InvalidStructureException(
-    //             'The JSON provided is not in a Carbon Editor format.'
-    //         );
-    //     }
-
-    //     $this->convertRecursive($this->json->sections);
-
-    //     return $this->dom->saveHTML();
-    // }
-
-    /**
-     * Recursively walk the object and build the HTML
-     *
-     * @param  array
-     */
-    // protected function convertRecursive(array $json, DOMElement $parentElement = null)
-    // {
-    //     foreach ($json as $jsonNode) {
-
-    //         $component = ucfirst($jsonNode->component);
-
-    //         if (empty($this->components[$component])) {
-
-    //             throw new Exception\InvalidStructureException(
-    //                 "The JSON contains the component '$component', but that isn't loaded."
-    //             );
-    //         }
-
-    //         $element = $this->components[$component]->parse($jsonNode, $this->dom, $parentElement);
-
-    //         if (isset($jsonNode->components)) {
-    //             $this->convertRecursive($jsonNode->components, $element);
-    //         }
-    //     }
-    // }
 }

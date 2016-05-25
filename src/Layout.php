@@ -7,11 +7,8 @@
  */
 namespace Candybanana\HtmlToCarbonJson;
 
-use Candybanana\HtmlToCarbonJson\Converter;
-use Candybanana\HtmlToCarbonJson\Components\ComponentInterface;
-
 /**
- * ComponentInterface
+ * Layout
  */
 class Layout
 {
@@ -40,27 +37,22 @@ class Layout
     /**
      * Add a component to this layout
      *
-     * @param \Candybanana\HtmlToCarbonJson\Components\ComponentInterface
+     * @param array
      */
     public function addComponent(array $component)
     {
         $this->components[] = $component;
     }
 
+    /**
+     * Render layout with its components
+     *
+     * @return string
+     */
     public function render()
     {
         $this->layout['components'] = $this->components;
 
         return $this->layout;
-
-
-        // Custom: 'Boxout' component, if the element is a div and has the class 'boxout'
-
-        // EmbeddedComponent - single node with URL matching embed regex
-        // @todo: set embed regex in config
-
-        // List - tag type is UL. Find out how we recieve lists from the migration! May be able to modify input to set UL tags without <p>...
-
-        // Figure (image) - not used in VG! - single node with tag IMG
     }
 }

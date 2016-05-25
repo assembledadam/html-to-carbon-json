@@ -9,81 +9,53 @@ namespace Candybanana\HtmlToCarbonJson\Components;
 
 use Candybanana\HtmlToCarbonJson\Converter;
 use Candybanana\HtmlToCarbonJson\Element;
-use stdClass;
 
 /**
- * Converter
+ * Component
  */
-class Paragraph implements ComponentInterface
+class EmbeddedComponent extends AbstractComponent implements ComponentInterface
 {
     /**
-     * Custom component configuration
-     *
-     * @var array
-     */
-    protected $config;
-
-    /**
-     * The currently matched element
-     *
-     * @var \Candybanana\HtmlToCarbonJson\Element
-     */
-    protected $element;
-
-    /**
-     * Tags serviced by this element
-     *
-     * @var array
+     * {@inheritdoc}
      */
     protected $tags = [
-        'p',
-        'h1',
-        'h2',
-        'h3',
-        'h4',
-        'h5',
-        'h6',
-        'blockquote',
-        'pre',
-        'code',
-
-        // TEMP
         'div',
-        'ul',
     ];
 
     /**
-     * Component constructor
-     *
-     * @param array|null
+     * {@inheritdoc}
      */
-    public function __construct(array $config = null)
+    public function __construct(array $config = [])
     {
         $defaultConfig = [
 
-            // minimum heading to allow - useful for if your toolbar only contains h1 or h1 and h2
-            'minimumHeading' => 'h3',
+            // callback that determines what the layout type should be for this component
+            'layoutTypeCallback' => function ($element) {
+                return 'layout-single-column';
+            },
 
-            // allowed inline formatting tags and their Carbon value
-            'formattingTags' => [
-                'a'      => 'a',
-                'strong' => 'strong',
-                'em'     => 'em',
-                's'      => 's',
-                'u'      => 'u',
-                'b'      => 'strong',
-                'i'      => 'em',
-                'ins'    => 'u',
-                'del'    => 's',
-            ]
+            /*
+             * callback that should return an array with the following keys:
+             * [
+             *     'provider'      the provider that is resolving the oembed for us (e.g. embedly)
+             *     'type':         type of embed, one of rich|video|link|image
+             *     'serviceName':  provider of the embed, e.g. YouTube
+             *     'sizes':        an array of available embed sizes with width and height
+             * ]
+             */
+            'providerCallback' => function ($url) {
+                return [
+                    'provider'    => null,
+                    'type'        => null,
+                    'serviceName' => null,
+                    'sizes'       => [
+
+                    ]
+                ];
+            },
         ];
 
-        $this->config = array_merge($defaultConfig, $config);
-
-        // arrange allowed formatting tags
-        foreach ($this->config['formattingTags'] as $varient => $tag) {
-            $this->config['allowedFormattingTags'][] = $varient;
-        }
+        parent::__construct($defaultConfig, $config);
     }
 
     /**
@@ -91,35 +63,16 @@ class Paragraph implements ComponentInterface
      */
     public function matches(Element $element)
     {
-        if (! in_array($element->getTagName(), $this->tags)) {
+        if (! parent::matches($element)) {
             return false;
         }
 
-        // @todo: detect if value = empty and the only node is an image - if so skip for Figure
-
-        $this->element = $element;
+        // ensure this div is for this component
+        if ($this->element->getAttribute('data-special') !== 'embed') {
+            return false;
+        }
 
         return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function isEmpty()
-    {
-        if ($this->element->getValue()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function requiresNewLayout()
-    {
-        return false;
     }
 
     /**
@@ -131,7 +84,7 @@ class Paragraph implements ComponentInterface
             'name'      => Converter::carbonId(),
             'component' => 'Layout',
             'tagName'   => 'div',
-            'type'      => 'layout-single-column',
+            'type'      => $this->config['layoutTypeCallback']($this->element),
         ];
     }
 
@@ -140,18 +93,20 @@ class Paragraph implements ComponentInterface
      */
     public function render()
     {
-        //  -> be sure to parse any iframe/html here
+        $provider = $this->config['providerCallback']($this->element->getValue());
 
         $json = [
-            'name'            => Converter::carbonId(),
-            'component'       => 'Paragraph',
-            'text'            => $this->element->getValue(),
-            'placeholderText' => null,
-            'paragraphType'   => $this->paragraphType(),
+            'name'        => Converter::carbonId(),
+            'component'   => 'EmbeddedComponent',
+            'url'         => $this->element->getValue(),
+            'caption'     => '',
+            'provider'    => $provider['provider'],
+            'type'        => $provider['type'],
+            'serviceName' => $provider['serviceName'],
         ];
 
-        if ($formats = $this->detectFormatting()) {
-            $json['formats'] = $formats;
+        if ($provider['sizes']) {
+            $json['sizes'] = $provider['sizes'];
         }
 
         return $json;
