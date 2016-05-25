@@ -8,7 +8,6 @@
 namespace Candybanana\HtmlToCarbonJson;
 
 use DOMDocument;
-use DOMElement;
 
 /**
  * Converter
@@ -23,59 +22,65 @@ class Converter
     protected $config;
 
     /**
-     * An object representing the JSON to convert
+     * An array with html elements representing carbon 'Sections'
      *
-     * @var string
+     * @var array
      */
-    // protected $json;
+    protected $sectionsHtml = [];
+
+    /**
+     * An array of Carbon-format 'Sections'
+     *
+     * @var array
+     */
+    protected $sections = [];
 
     /**
      * Array of default components and their configurations, representing Carbon components
      *
      * @var array
      */
-    // protected $defaultComponents = [
-    //     'Section',
-    //     'Layout',
-    //     'Paragraph',
-    //     'Figure',
-    // ];
+    protected $defaultComponents = [
+        'Paragraph',
+        // 'Figure',
+        // 'EmbeddedComponent',
+    ];
 
     /**
      * Array of instantiated components
      *
      * @var array
      */
-    // protected $components = [];
+    protected $components = [];
 
     /**
      * Constructor
      *
      * @param  array
-     * @return string
      */
-    public function __construct(array $config)
+    public function __construct(array $config = [])
     {
         $defaults = array(
-            'suppress_errors' => true,  // Set to false to show warnings when loading malformed HTML
-            'remove_nodes'    => '',    // space-separated list of dom nodes that should be removed. example: 'meta style script'
+            'suppress_errors'  => true,  // Set to false to show warnings when loading malformed HTML
+            'remove_nodes'     => '',    // space-separated list of dom nodes that should be removed. example: 'meta style script'
+            'layout_classname' => 'layout-single-column',
         );
 
         $this->config = array_merge($defaults, $config);
 
-        // // add default components
-        // foreach ($this->defaultComponents as $componentName => $config) {
+        // add default components
+        foreach ($this->defaultComponents as $componentName => $config) {
 
-        //     // do we have a config?
-        //     if (! is_array($config)) {
-        //         $componentName = $config;
-        //         $config = [];
-        //     }
+            // do we have a config?
+            if (! is_array($config)) {
+                $componentName = $config;
+                $config = [];
+            }
 
-        //     $component = '\\Candybanana\\CarbonJsonToHtml\\Components\\' . ucfirst($componentName);
+            $component = '\\Candybanana\\HtmlToCarbonJson\\Components\\' . ucfirst($componentName);
 
-        //     $this->addComponent($componentName, new $component($config));
-        // }
+            $this->addComponent($componentName, new $component($config));
+        }
     }
 
     /**
@@ -85,21 +90,18 @@ class Converter
      * @param  \Candybanana\HtmlToCarbonJson\Components\ComponentInterface
      * @return \Candybanana\HtmlToCarbonJson\Converter
      */
-    // public function addComponent($componentName, Components\ComponentInterface $component)
-    // {
-    //     $this->components[$componentName] = $component;
+    public function addComponent($componentName, Components\ComponentInterface $component)
+    {
+        $this->components[$componentName] = $component;
 
-    //     return $this;
-    // }
+        return $this;
+    }
 
     /**
-     * Convert
+     * Convert HTML to Carbon JSON
      *
-     * Loads HTML and passes to getMarkdown()
-     *
-     * @param $html
-     *
-     * @return string The Markdown version of the html
+     * @param  string
+     * @return string
      */
     public function convert($html)
     {
@@ -109,30 +111,66 @@ class Converter
 
         $document = $this->createDOMDocument($html);
 
-        dd($document);
+        if (! ($root = $document->getElementsByTagName('body')->item(0))) {
+            throw new \InvalidArgumentException('Invalid HTML was provided');
+        }
 
-        // // Work on the entire DOM tree (including head and body)
-        // if (!($root = $document->getElementsByTagName('html')->item(0))) {
-        //     throw new \InvalidArgumentException('Invalid HTML was provided');
+        // $temp = new \DOMDocument();
+        // $node = $temp->importNode($root, true);
+        // $temp->appendChild($node);
+        // dd($temp->saveHTML());
+
+        $this->extractSections(new Element($root));
+
+        // DEBUG: reconstruct document
+        // $temp = new \DOMDocument();
+        // foreach ($this->sectionsHtml as $section) {
+        //     $node = $temp->importNode($section->get(), true);
+        //     $temp->appendChild($node);
+        // }
+        // dd($temp->saveHTML());
+
+        // extract all the 'sections' from the document
+        // while ($rootElement->hasChildren()) {
+
+        //     // dbg($rootElement->numChildren());
+        //     // dbg($rootElement->getValue());
+
+        //     $this->extractSections($rootElement);
+
+        //     $temp = new \DOMDocument();
+        //     $node = $temp->importNode($rootElement);
+        //     dd($temp->saveHTML();
         // }
 
-        // $rootElement = new Element($root);
-        // $this->convertChildren($rootElement);
+        // convert each section's HTML into Carbon 'layouts'/'components'
+        foreach ($this->sectionsHtml as $section) {
 
-        // // Store the now-modified DOMDocument as a string
-        // $markdown = $document->saveHTML();
+            if ($converted = $this->convertSection($section)) {
+                $this->sections[] = $converted;
+            }
+        }
 
-        // $markdown = $this->sanitize($markdown);
-
-        // return $markdown;
+        return json_encode($this->sections);
     }
 
     /**
-     * @param string $html
+     * Generates a unique Carbon element ID
      *
+     * @return string
+     */
+    public static function carbonId()
+    {
+        return substr(str_shuffle(md5(microtime())), 0, 8);
+    }
+
+    /**
+     * Create DOM document from given html
+     *
+     * @param  string
      * @return \DOMDocument
      */
-    private function createDOMDocument($html)
+    protected function createDOMDocument($html)
     {
         $document = new \DOMDocument();
 
@@ -141,9 +179,12 @@ class Converter
             libxml_use_internal_errors(true);
         }
 
-        // Hack to load utf-8 HTML (from http://bit.ly/pVDyCt)
+        $html = $this->sanitizeInput($html);
+
+        // hack to load utf-8 HTML (from http://bit.ly/pVDyCt)
         $document->loadHTML('<?xml encoding="UTF-8">' . $html);
         $document->encoding = 'UTF-8';
+        // $document->preserveWhiteSpace = false;
 
         if ($this->config['suppress_errors']) {
             libxml_clear_errors();
@@ -153,83 +194,169 @@ class Converter
     }
 
     /**
-     * Convert Children
+     * Get rid of whitespace
      *
-     * Recursive function to drill into the DOM and convert each node into Markdown from the inside out.
-     *
-     * Finds children of each node and convert those to #text nodes containing their Markdown equivalent,
-     * starting with the innermost element and working up to the outermost element.
-     *
-     * @param ElementInterface $element
+     * @param  string
+     * @return string
      */
-    private function convertChildren(ElementInterface $element)
+    protected function sanitizeInput($html)
     {
-        // Don't convert HTML code inside <code> and <pre> blocks to Markdown - that should stay as HTML
-        if ($element->isDescendantOf(array('pre', 'code'))) {
-            return;
-        }
+        return preg_replace(
+            array(
+                '/ {2,}/',
+                '/<!--.*?-->|\t|(?:\r?\n[ \t]*)+/s'
+            ),
+            array(
+                ' ',
+                ''
+            ),
+            $html
+        );
+    }
 
-        // If the node has children, convert those to Markdown first
+    /**
+     * Extract the equivalent of 'Sections' in Carbon from the document
+     *
+     * @param  \Candybanana\HtmlToCarbonJson\Element
+     * @return boolean
+     */
+    protected function extractSections(Element $element)
+    {
+        // recursively iterate until we get to the innermost child
         if ($element->hasChildren()) {
+
             foreach ($element->getChildren() as $child) {
-                $this->convertChildren($child);
+
+                // we've found our section, return
+                if ($this->extractSections($child)) {
+                    return;
+                }
             }
         }
 
-        // Now that child nodes have been converted, convert the original node
-        $markdown = $this->convertToMarkdown($element);
+        // is this a block element with children?
+        if ($element->isBlock() && $element->hasChildren()) {
 
-        // Create a DOM text node containing the Markdown equivalent of the original node
+            // does it have a parent? If so that's our section
+            if ($parent = $element->getParent()) {
 
-        // Replace the old $node e.g. '<h3>Title</h3>' with the new $markdown_node e.g. '### Title'
-        $element->setFinalMarkdown($markdown);
-    }
+                $this->sectionsHtml[] = $parent;
 
-    /**
-     * Convert to Markdown
-     *
-     * Converts an individual node into a #text node containing a string of its Markdown equivalent.
-     *
-     * Example: An <h3> node with text content of 'Title' becomes a text node with content of '### Title'
-     *
-     * @param ElementInterface $element
-     *
-     * @return string The converted HTML as Markdown
-     */
-    protected function convertToMarkdown(ElementInterface $element)
-    {
-        $tag = $element->getTagName();
+                // remove it from the DOM
+                // @todo: check if this is the root element - if so error out
 
-        // Strip nodes named in remove_nodes
-        $tags_to_remove = explode(' ', $this->getConfig()->getOption('remove_nodes'));
-        if (in_array($tag, $tags_to_remove)) {
-            return false;
+                $parent->remove();
+
+                return true;
+            }
         }
 
-        $converter = $this->environment->getConverterByTag($tag);
-
-        return $converter->convert($element);
+        // we're done with this node
+        return false;
     }
 
     /**
-     * @param string $markdown
+     * Builds an object that will represent our JSON based on the sections we've extracted
      *
+     * @param  Element
      * @return string
      */
-    protected function sanitize($markdown)
+    protected function convertSection(Element $section)
     {
-        $markdown = html_entity_decode($markdown, ENT_QUOTES, 'UTF-8');
-        $markdown = preg_replace('/<!DOCTYPE [^>]+>/', '', $markdown); // Strip doctype declaration
-        $unwanted = array('<html>', '</html>', '<body>', '</body>', '<head>', '</head>', '<?xml encoding="UTF-8">', '&#xD;');
-        $markdown = str_replace($unwanted, '', $markdown); // Strip unwanted tags
-        $markdown = trim($markdown, "\n\r\0\x0B");
+        $layouts = [];
+        $layout = $prevComponentClass = null;
 
-        return $markdown;
+        foreach ($section->getChildren() as $sectionChild) {
+
+            if (! ($component = $this->matchWithComponent($sectionChild))) {
+
+                throw new Exceptions\InvalidStructureException(
+                    "No component loaded to render '" . $sectionChild->getTagName() . "' tags."
+                );
+            }
+
+            // if empty, skip this child
+            if ($component->isEmpty()) {
+                continue;
+            }
+
+            $componentClass = get_class($component);
+
+            // create a new layout if we're not in one, or the component requires a new one
+            if ($component->requiresNewLayout() || $componentClass !== $prevComponentClass) {
+
+                // save previous layout
+                if ($layout) {
+                    $layouts[] = $layout->render();
+                }
+
+                // create new
+                $layout = new Layout($component->getLayout());
+            }
+
+            $layout->addComponent($component->render());
+
+            $prevComponentClass = $componentClass;
+        }
+
+        // render the last layout
+        if ($layout) {
+            $layouts[] = $layout->render();
+        }
+
+        // create final section json
+        if (! empty($layouts)) {
+
+            $section = [
+                'name'       => self::carbonId(),
+                'component'  => 'Section',
+                'components' => $layouts
+            ];
+
+            return $section;
+        }
+
+        // Strip nodes named in remove_nodes
+        // $tags_to_remove = explode(' ', $this->getConfig()->getOption('remove_nodes'));
+        // if (in_array($tag, $tags_to_remove)) {
+        //     return false;
+        // }
+
+        // foreach ($section->getChildren() as $sectionChild) {
+
+        //     // skip if empty
+        //     // @todo: figure out how we identify empty!
+
+        //     // @todo: put this into the component, so it can be controlled
+        //     $sections[] = [
+        //         'name'       => self::carbonId(),
+        //         'tagName'    => 'div',
+        //         'type'       => $this->config['section_classname'],
+        //         'component'  => 'Layout',
+        //         'components' => (string) new Components\Component($sectionChild),
+        //     ];
+        // }
     }
 
+    /**
+     * Match a component to the given element
+     *
+     * @return [type] [description]
+     */
+    protected function matchWithComponent(Element $element)
+    {
+        foreach ($this->components as $component) {
 
+            // return if we've found the component for this element
+            if ($component->matches($element)) {
 
+                return $component;
+            }
+        }
 
+        // no component matches
+        return null;
+    }
 
     /**
      * Perform the conversion
