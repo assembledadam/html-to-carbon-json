@@ -283,6 +283,20 @@ class Element
     }
 
     /**
+     * Return all atrributes
+     *
+     * @return array
+     */
+    public function getAttributes()
+    {
+        if ($this->node instanceof \DOMElement) {
+            return $this->node->attributes;
+        }
+
+        return [];
+    }
+
+    /**
      * @param ElementInterface $element
      *
      * @return bool

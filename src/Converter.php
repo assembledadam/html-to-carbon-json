@@ -43,6 +43,7 @@ class Converter
     protected $defaultComponents = [
         'ParagraphComponent',
         'EmbeddedComponent',
+        'HTMLComponent',
         // 'Figure',
     ];
 
@@ -145,7 +146,7 @@ class Converter
             }
         }
 
-        return json_encode($this->sections);
+        return json_encode(['sections' => $this->sections]);
     }
 
     /**
@@ -166,6 +167,9 @@ class Converter
      */
     protected function createDOMDocument($html)
     {
+        // first purify HTML
+        // $html = (new HTMLPurifier())->purify($html);
+
         $document = new \DOMDocument();
 
         if ($this->config['suppress_errors']) {
@@ -265,13 +269,21 @@ class Converter
             if (! ($component = $this->matchWithComponent($sectionChild))) {
 
                 // is there's a value in this element, throw error, otherwise ignore it
-                if (! $sectionChild->getValue()) {
+                if (! trim($sectionChild->getValue())) {
                     continue;
                 }
 
-                throw new Exceptions\InvalidStructureException(
-                    "No component loaded to render '" . $sectionChild->getTagName() . "' tags."
-                );
+                // build the tag for easy debugging
+                $tag = '<' . $sectionChild->getTagName();
+
+                foreach ($sectionChild->getAttributes() as $attribute) {
+                    $tag .= ' ' . $attribute->name . '="';
+                    $tag .= $sectionChild->getAttribute($attribute->name) . '"';
+                }
+
+                $tag .= '>';
+
+                throw new Exceptions\InvalidStructureException("No component loaded to render '$tag' tags.");
             }
 
             // if empty, skip this child

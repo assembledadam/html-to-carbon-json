@@ -13,7 +13,7 @@ use Candybanana\HtmlToCarbonJson\Element;
 /**
  * Component
  */
-class EmbeddedComponent extends AbstractComponent implements ComponentInterface
+class HTMLComponent extends AbstractComponent implements ComponentInterface
 {
     /**
      * {@inheritdoc}
@@ -33,26 +33,6 @@ class EmbeddedComponent extends AbstractComponent implements ComponentInterface
             'layoutTypeCallback' => function ($element) {
                 return 'layout-single-column';
             },
-
-            /*
-             * callback that should return an array with the following keys:
-             * [
-             *     'provider'      the provider that is resolving the oembed for us (e.g. embedly)
-             *     'type':         type of embed, one of rich|video|link|image
-             *     'serviceName':  provider of the embed, e.g. YouTube
-             *     'sizes':        an array of available embed sizes with width and height
-             * ]
-             */
-            'providerCallback' => function ($url) {
-                return [
-                    'provider'    => null,
-                    'type'        => null,
-                    'serviceName' => null,
-                    'sizes'       => [
-
-                    ]
-                ];
-            },
         ];
 
         parent::__construct($defaultConfig, $config);
@@ -68,7 +48,7 @@ class EmbeddedComponent extends AbstractComponent implements ComponentInterface
         }
 
         // ensure this div is for this component
-        if ($this->element->getAttribute('data-special') !== 'embed') {
+        if ($this->element->getAttribute('data-special') !== 'html') {
             return false;
         }
 
@@ -93,21 +73,15 @@ class EmbeddedComponent extends AbstractComponent implements ComponentInterface
      */
     public function render()
     {
-        $provider = $this->config['providerCallback']($this->element->getValue());
-
         $json = [
             'name'        => Converter::carbonId(),
-            'component'   => 'EmbeddedComponent',
-            'url'         => $this->element->getValue(),
-            'caption'     => '',
-            'provider'    => $provider['provider'],
-            'type'        => $provider['type'],
-            'serviceName' => $provider['serviceName'],
+            'component'   => 'HTMLComponent',
+            'html'        => html_entity_decode($this->element->getValue()),
         ];
 
-        if ($provider['sizes']) {
-            $json['sizes'] = $provider['sizes'];
-        }
+        // if ($provider['sizes']) {
+        //     $json['sizes'] = $provider['sizes'];
+        // }
 
         return $json;
     }

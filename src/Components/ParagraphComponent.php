@@ -212,6 +212,10 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
 
                     $type = $this->config['formattingTags'][$node->getTagName()];
 
+                    if (empty($node->getValue())) {
+                        continue;
+                    }
+
                     list($from, $to) = $this->getTextPosition($element->getValue(), $node->getValue());
 
                     $format = [
