@@ -167,17 +167,17 @@ class Converter
      */
     protected function createDOMDocument($html)
     {
-        // first purify HTML
-        // $html = (new HTMLPurifier())->purify($html);
+        // clean up input html.
+        // Note: If you need to actually fix & secure the html, I suggest ezyang/htmlpurifier
+        $html = $this->sanitizeInput($html);
 
+        // create document
         $document = new \DOMDocument();
 
         if ($this->config['suppress_errors']) {
             // Suppress conversion errors (from http://bit.ly/pCCRSX)
             libxml_use_internal_errors(true);
         }
-
-        $html = $this->sanitizeInput($html);
 
         // hack to load utf-8 HTML (from http://bit.ly/pVDyCt)
         $document->loadHTML('<?xml encoding="UTF-8">' . $html);
@@ -282,6 +282,10 @@ class Converter
                 }
 
                 $tag .= '>';
+
+                dbg($section->getValue());
+                dbg($tag);
+                dbg($sectionChild->getValue());
 
                 throw new Exceptions\InvalidStructureException("No component loaded to render '$tag' tags.");
             }

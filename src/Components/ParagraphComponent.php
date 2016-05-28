@@ -29,7 +29,8 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
         'blockquote',
         'pre',
         'code',
-        'ul'
+        'ul',
+        'div',
     ];
 
     /**
@@ -83,6 +84,11 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
             return false;
         }
 
+        // only process divs that determine 'boxout's
+        if ($this->element->getTagName() == 'div' && $this->element->getAttribute('data-boxout') !== 'true') {
+            return false;
+        }
+
         // @todo: detect if value = empty and the only node is an image - if so skip for Figure
 
         return $this;
@@ -93,7 +99,28 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
      */
     public function requiresNewLayout()
     {
+        // boxouts require a new layout
+        if ($this->element->getAttribute('data-boxout')) {
+            return true;
+        }
+
         return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getLayout()
+    {
+        $type = $this->element->getAttribute('data-boxout') === 'true' ?
+            'boxout' : $this->config['layoutTypeCallback']($this->element);
+
+        return [
+            'name'      => Converter::carbonId(),
+            'component' => 'Layout',
+            'tagName'   => 'div',
+            'type'      => $type,
+        ];
     }
 
     /**

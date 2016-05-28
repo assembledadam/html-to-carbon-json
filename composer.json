@@ -4,8 +4,7 @@
     "description": "HTML to Carbon Editor JSON converter.",
     "keywords": ["carbon", "json", "html", "converter"],
     "require": {
-        "php": ">=5.4",
-        "ezyang/htmlpurifier": "4.*"
+        "php": ">=5.4"
     },
     "authors": [
         {
