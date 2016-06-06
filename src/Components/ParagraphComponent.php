@@ -50,6 +50,7 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
                 'em'     => 'em',
                 's'      => 's',
                 'u'      => 'u',
+                'sup'    => 'sup', // superscript - supported?
                 'b'      => 'strong',
                 'i'      => 'em',
                 'ins'    => 'u',
