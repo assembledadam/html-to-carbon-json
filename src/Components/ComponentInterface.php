@@ -47,7 +47,8 @@ interface ComponentInterface
     /**
      * Render the component's element
      *
+     * @param  \Candybanana\HtmlToCarbonJson\Converter
      * @return string
      */
-    public function render();
+    public function render(Converter $converter = null);
 }

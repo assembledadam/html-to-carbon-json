@@ -98,6 +98,21 @@ class Converter
     }
 
     /**
+     * Returns component object based on name
+     *
+     * @param  string
+     * @return \Candybanana\HtmlToCarbonJson\Components\ComponentInterface
+     */
+    public function getComponent($componentName)
+    {
+        if (! empty($this->components[$componentName])) {
+            return $this->components[$componentName];
+        }
+
+        throw new \InvalidArgumentException("Requested component $componentName is not loaded.");
+    }
+
+    /**
      * Convert HTML to Carbon JSON
      *
      * @param  string
@@ -157,6 +172,23 @@ class Converter
     public static function carbonId()
     {
         return substr(str_shuffle(md5(microtime())), 0, 8);
+    }
+
+    /**
+     * Determine if an array is associative or not
+     * @see: http://stackoverflow.com/questions/5996749/determine-whether-an-array-is-associative-hash-or-not
+     *
+     * @param  array
+     * @return boolean
+     */
+    public static function isAssociativeArray(array $array)
+    {
+        // Get keys of the principle array
+        $keys = array_keys($array);
+
+        // If the numeric keys of our principle array match the keys of the principle array, then
+        // the array must not be associative (e.g. the keys array looked like {0:0, 1:1...}).
+        return array_keys($keys) !== $keys;
     }
 
     /**
@@ -309,7 +341,7 @@ class Converter
                 $layout = new Layout($component->getLayout());
             }
 
-            $layout->addComponent($component->render());
+            $layout->addComponent($component->render($this));
 
             $prevComponentClass = $componentClass;
         }

@@ -71,7 +71,7 @@ class HTMLComponent extends AbstractComponent implements ComponentInterface
     /**
      * {@inheritdoc}
      */
-    public function render()
+    public function render(Converter $converter = null)
     {
         $json = [
             'name'        => Converter::carbonId(),

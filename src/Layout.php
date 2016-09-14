@@ -41,7 +41,15 @@ class Layout
      */
     public function addComponent(array $component)
     {
-        $this->components[] = $component;
+        // is this component a numeric or associative array?
+        if (Converter::isAssociativeArray($component)) {
+
+            $this->components[] = $component;
+
+        } else {
+
+            $this->components = array_merge($this->components, $component);
+        }
     }
 
     /**

@@ -91,7 +91,7 @@ class EmbeddedComponent extends AbstractComponent implements ComponentInterface
     /**
      * {@inheritdoc}
      */
-    public function render()
+    public function render(Converter $converter = null)
     {
         $provider = $this->config['providerCallback']($this->element->getValue());
 

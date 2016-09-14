@@ -127,7 +127,7 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
     /**
      * {@inheritdoc}
      */
-    public function render()
+    public function render(Converter $converter = null)
     {
         // list type
         if ($this->element->getTagName() == 'ul') {
@@ -138,6 +138,11 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
                 'tagName'    => 'ul',
                 'components' => $this->listItems(),
             ];
+
+        // boxout
+        } else if ($this->element->getTagName() == 'div') {
+
+            $json = $this->boxout($converter);
 
         // ordinary type
         } else {
@@ -166,7 +171,32 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
     }
 
     /**
-     * Construct paragraph section
+     * Constructs components for within boxouts
+     *
+     * @return array
+     */
+    protected function boxout($converter)
+    {
+        // allow embeds within boxouts
+        $component = $converter->getComponent('EmbeddedComponent');
+
+        // allow rendering of embeds within boxouts
+        $elements = [];
+
+        foreach ($this->element->getChildren() as $item) {
+
+            if ($component->matches($item)) {
+                $elements[] = $component->render();
+            } else {
+                $elements[] = $this->makeParagraph($item);
+            }
+        }
+
+        return $elements;
+    }
+
+    /**
+     * Construct paragraph component
      *
      * @param  \Candybanana\HtmlToCarbonJson\Element|null
      * @return array
