@@ -95,11 +95,15 @@ class EmbeddedComponent extends AbstractComponent implements ComponentInterface
     {
         $provider = $this->config['providerCallback']($this->element->getValue());
 
+        // caption text?
+        $caption = ! empty($this->element->getAttribute('data-caption'))
+            ? $this->element->getAttribute('data-caption') : '';
+
         $json = [
             'name'        => Converter::carbonId(),
             'component'   => 'EmbeddedComponent',
             'url'         => $this->element->getValue(),
-            'caption'     => '',
+            'caption'     => $caption,
             'provider'    => $provider['provider'],
             'type'        => $provider['type'],
             'serviceName' => $provider['serviceName'],
