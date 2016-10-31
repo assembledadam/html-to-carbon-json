@@ -141,16 +141,16 @@ class Converter
         // dd($temp->saveHTML());
 
         // extract all the 'sections' from the document
-        // while ($rootElement->hasChildren()) {
+        // while ($root->hasChildren()) {
 
         //     // dbg($rootElement->numChildren());
         //     // dbg($rootElement->getValue());
 
-        //     $this->extractSections($rootElement);
+        //     $this->extractSections($root);
 
         //     $temp = new \DOMDocument();
-        //     $node = $temp->importNode($rootElement);
-        //     dd($temp->saveHTML();
+        //     $node = $temp->importNode($root);
+        //     dd($temp->saveHTML());
         // }
 
         // convert each section's HTML into Carbon 'layouts'/'components'
@@ -161,7 +161,7 @@ class Converter
             }
         }
 
-        return json_encode(['sections' => $this->sections]);
+        return json_encode(['sections' => $this->sections], JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -265,7 +265,8 @@ class Converter
         }
 
         // is this a block element with children?
-        if ($element->isBlock() && $element->hasChildren()) {
+        // 30/10/16: hacky fix here for LIs containing children. @todo: Proper fix = custom isBlock() function.
+        if ($element->getTagName() !== 'li' && $element->isBlock() && $element->hasChildren()) {
 
             // does it have a parent? If so that's our section
             if ($parent = $element->getParent()) {

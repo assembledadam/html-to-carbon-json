@@ -9,6 +9,7 @@ namespace Candybanana\HtmlToCarbonJson\Components;
 
 use Candybanana\HtmlToCarbonJson\Converter;
 use Candybanana\HtmlToCarbonJson\Element;
+use voku\helper\UTF8;
 
 /**
  * Component
@@ -306,11 +307,11 @@ class ParagraphComponent extends AbstractComponent implements ComponentInterface
      */
     protected function getTextPosition($context, $text)
     {
-        $pos = strpos($context, $text);
+        $pos = UTF8::strpos($context, $text);
 
         return [
             $pos,
-            $pos + strlen($text)
+            $pos + UTF8::strlen($text)
         ];
     }
 }
